@@ -105,3 +105,8 @@ Clean rebuild: ตัดโค้ดซ้ำ/โค้ดเก่า/เอฟ
 - เทรนจากข้อมูล field-test 210 ตัวอย่าง
 - ใช้ acoustic features เป็นหลัก: centroid, band energy, peak count, rolloff, peak2 ratio
 - คาดว่า CV accuracy ~73% เทียบกับ current app ~52.6%
+
+## v25.1 Stable
+- แก้ปัญหา v25 ประมวลผลไม่ขึ้น/AI Voice ไม่ทำงาน
+- ใส่ fallback ให้ทุก feature ของ Ripeness AI
+- เพิ่ม safeAnalyzeSession เพื่อไม่ให้ error ตัวเดียวทำให้แอปหยุดทั้งหมด
