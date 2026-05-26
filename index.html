@@ -48,7 +48,7 @@
 <body>
 <div class="wrap">
   <h1>MelodyMelonTap 🎤🍉</h1>
-  <div class="version">Version: v2026.05.12-raw2-logic-v20</div>
+  <div class="version">Version: v2026.05.14-ripeness-ai-v25</div>
   <div class="voiceNote">🎙 AI Voice Summary อ่านสรุปผลแบบภาษาคน ไม่อ่านตัวเลขยาว</div>
 
   <div class="card">
@@ -92,7 +92,22 @@
   </div>
 
   <div class="card">
-    <details>
+    
+<div style="margin:12px 0;display:flex;gap:10px;flex-wrap:wrap;">
+  
+  <button id="clearCsvBtn" class="secondary" onclick="clearMeasurementsCSV()" type="button">
+    ล้างข้อมูล CSV
+  </button>
+</div>
+
+
+<div style="margin:8px 0;display:flex;gap:10px;flex-wrap:wrap;">
+  <button id="testBeepBtn" class="secondary" onclick="playWarningBeep('medium')" type="button">
+    ทดสอบเสียงเตือน
+  </button>
+</div>
+
+<details>
       <summary>ข้อมูลเชิงเทคนิค / Debug</summary>
       <ul id="featureList"></ul>
     </details>
@@ -129,12 +144,147 @@ function spread(values){const vals=values.filter(Number.isFinite);return vals.le
 function getRMS(samples){let s=0;for(let i=0;i<samples.length;i++)s+=samples[i]*samples[i];return Math.sqrt(s/samples.length);}
 function movingAverage(arr,win=3){return arr.map((_,i)=>{let a=Math.max(0,i-1),b=Math.min(arr.length,i+2),s=0;for(let j=a;j<b;j++)s+=arr[j];return s/(b-a);});}
 
-function sweetnessLabel(brix){if(brix<8)return"หวานน้อย";if(brix<10.8)return"หวานอ่อน";if(brix<12)return"หวานดี";return"หวานมาก";}
+function sweetnessLabel(brix){
+  if(brix < 8.8) return "หวานน้อย";
+  if(brix < 10.8) return "หวาน";
+  if(brix < 12.2) return "หวานมาก";
+  return "หวานเจี๊ยบ";
+}
+
 function juiceLabel(juice){if(juice<50)return"ฉ่ำน้อย";if(juice<63)return"ฉ่ำกำลังดี";return"ฉ่ำมาก";}
 function crispPercent(firmness){return clamp(((firmness-5)/(20-5))*100,0,100);}
 function crispLabel(p){if(p<20)return"เนื้อนิ่มมาก";if(p<40)return"เนื้อค่อนข้างนิ่ม";if(p<60)return"เนื้อปานกลาง";if(p<80)return"เนื้อแน่นกำลังดี";return"เนื้อแน่นกรอบ";}
 function hollowDisplayLabel(h){if(h<5)return"เนื้อภายในค่อนข้างสมบูรณ์";if(h<12)return"ไม่พบโพรงภายใน";if(h<20)return"เริ่มมีโพรงภายในเล็กน้อย";if(h<35)return"มีโพรงภายใน";return"มีโพรงภายในค่อนข้างมาก";}
 function qualityLevelText(score){if(score>=85)return"คาดว่าเป็นแตงโมที่มีคุณภาพดีเยี่ยม";if(score>=70)return"คาดว่าเป็นแตงโมที่มีคุณภาพดี";if(score>=50)return"คาดว่าเป็นแตงโมที่มีคุณภาพปานกลาง";return"คาดว่าเป็นแตงโมที่มีคุณภาพไม่ดี";}
+
+// ===== Audio120 Hybrid Model v22 =====
+function predictBrixAI(fPeak, Q, tau, fStd, fVar, hollowIndex, bw, highRatio, lowRatio, flatness, band50100, band100150, band150300, band300600, band6001000, centroid, rolloff85, rolloff95, peakCount, peak2Ratio, attackTime, decayRatio) {
+  let y = 12.03046088;
+  y += -0.0003658906586 * safe(fPeak, 0); // audio_f_peak
+  y += 0.0008479498254 * safe(Q, 0); // audio_Q
+  y += -0.01246779463 * safe(tau, 0); // audio_tau
+  y += 0.0005732474893 * safe(fStd, 0); // audio_f_std
+  y += 2.497462718e-06 * safe(fVar, 0); // audio_f_var
+  y += 1.133345191 * safe(hollowIndex, 0); // audio_hollow_index
+  y += -0.02839143859 * safe(bw, 0); // audio_bw
+  y += -2.38718568 * safe(highRatio, 0); // high_ratio
+  y += 0.1227178358 * safe(lowRatio, 0); // low_ratio
+  y += -3.947600694 * safe(flatness, 0); // audio_flatness
+  y += -3.689550941 * safe(band50100, 0); // band_50_100
+  y += 0.4849311652 * safe(band100150, 0); // band_100_150
+  y += 1.469468313 * safe(band150300, 0); // band_150_300
+  y += 0.9857622046 * safe(band300600, 0); // band_300_600
+  y += -2.38718568 * safe(band6001000, 0); // band_600_1000
+  y += -0.002252769115 * safe(centroid, 0); // audio_centroid
+  y += -0.0004325643742 * safe(rolloff85, 0); // audio_rolloff85
+  y += 0.001529935184 * safe(rolloff95, 0); // audio_rolloff95
+  y += 0.04388689283 * safe(peakCount, 0); // audio_peak_count
+  y += -0.072889424 * safe(peak2Ratio, 0); // audio_peak2_ratio
+  y += 2.757770305 * safe(attackTime, 0); // audio_attack_time
+  y += -0.1360099305 * safe(decayRatio, 0); // audio_decay_ratio
+  return clamp(y, 7.0, 14.5);
+}
+
+function predictFirmnessAI(fPeak, Q, tau, fStd, fVar, hollowIndex, bw, highRatio, lowRatio, flatness, band50100, band100150, band150300, band300600, band6001000, centroid, rolloff85, rolloff95, peakCount, peak2Ratio, attackTime, decayRatio) {
+  let y = 11.69448163;
+  y += 0.00105849442 * safe(fPeak, 0); // audio_f_peak
+  y += 0.0173010094 * safe(Q, 0); // audio_Q
+  y += -0.06290964789 * safe(tau, 0); // audio_tau
+  y += 0.005451747329 * safe(fStd, 0); // audio_f_std
+  y += 2.457099501e-05 * safe(fVar, 0); // audio_f_var
+  y += -6.24044325 * safe(hollowIndex, 0); // audio_hollow_index
+  y += 0.009797301339 * safe(bw, 0); // audio_bw
+  y += 5.702571543 * safe(highRatio, 0); // high_ratio
+  y += -3.614222712 * safe(lowRatio, 0); // low_ratio
+  y += 6.311878586 * safe(flatness, 0); // audio_flatness
+  y += 4.831723461 * safe(band50100, 0); // band_50_100
+  y += -7.974909252 * safe(band100150, 0); // band_100_150
+  y += -2.944384979 * safe(band150300, 0); // band_150_300
+  y += 2.096806808 * safe(band300600, 0); // band_300_600
+  y += 5.702571543 * safe(band6001000, 0); // band_600_1000
+  y += 0.01093734216 * safe(centroid, 0); // audio_centroid
+  y += 0.004741806319 * safe(rolloff85, 0); // audio_rolloff85
+  y += 0.0004069950266 * safe(rolloff95, 0); // audio_rolloff95
+  y += 0.06317639622 * safe(peakCount, 0); // audio_peak_count
+  y += -1.385391879 * safe(peak2Ratio, 0); // audio_peak2_ratio
+  y += 5.10578553 * safe(attackTime, 0); // audio_attack_time
+  y += -0.3338860873 * safe(decayRatio, 0); // audio_decay_ratio
+  return clamp(y, 0, 40);
+}
+
+function predictJuiceAI(fPeak, Q, tau, fStd, fVar, hollowIndex, bw, highRatio, lowRatio, flatness, band50100, band100150, band150300, band300600, band6001000, centroid, rolloff85, rolloff95, peakCount, peak2Ratio, attackTime, decayRatio) {
+  let y = 72.52006803;
+  y += 0.0007698166978 * safe(fPeak, 0); // audio_f_peak
+  y += -0.0001460123766 * safe(Q, 0); // audio_Q
+  y += -0.09636796646 * safe(tau, 0); // audio_tau
+  y += -0.01086951917 * safe(fStd, 0); // audio_f_std
+  y += -4.052178322e-05 * safe(fVar, 0); // audio_f_var
+  y += 3.511168329 * safe(hollowIndex, 0); // audio_hollow_index
+  y += 0.01111520119 * safe(bw, 0); // audio_bw
+  y += -7.428168128 * safe(highRatio, 0); // high_ratio
+  y += 2.889796413 * safe(lowRatio, 0); // low_ratio
+  y += -10.76092538 * safe(flatness, 0); // audio_flatness
+  y += -15.39017348 * safe(band50100, 0); // band_50_100
+  y += 8.405048733 * safe(band100150, 0); // band_100_150
+  y += 4.628526335 * safe(band150300, 0); // band_150_300
+  y += -0.2918698609 * safe(band300600, 0); // band_300_600
+  y += -7.428168128 * safe(band6001000, 0); // band_600_1000
+  y += -0.009428218803 * safe(centroid, 0); // audio_centroid
+  y += -0.005626308554 * safe(rolloff85, 0); // audio_rolloff85
+  y += 0.001614668187 * safe(rolloff95, 0); // audio_rolloff95
+  y += -0.03951954222 * safe(peakCount, 0); // audio_peak_count
+  y += 0.3329300404 * safe(peak2Ratio, 0); // audio_peak2_ratio
+  y += -6.283512426 * safe(attackTime, 0); // audio_attack_time
+  y += -1.452878354 * safe(decayRatio, 0); // audio_decay_ratio
+  return clamp(y, 30, 92);
+}
+
+function predictHollowAI(fPeak, Q, tau, fStd, fVar, hollowIndex, bw, highRatio, lowRatio, flatness, band50100, band100150, band150300, band300600, band6001000, centroid, rolloff85, rolloff95, peakCount, peak2Ratio, attackTime, decayRatio) {
+  let y = 0.0952323487;
+  y += -3.450112518e-05 * safe(fPeak, 0); // audio_f_peak
+  y += -0.0002782350755 * safe(Q, 0); // audio_Q
+  y += 0.0001661299784 * safe(tau, 0); // audio_tau
+  y += 4.646311981e-05 * safe(fStd, 0); // audio_f_std
+  y += 5.364424615e-09 * safe(fVar, 0); // audio_f_var
+  y += 0.09478862513 * safe(hollowIndex, 0); // audio_hollow_index
+  y += 3.796582074e-05 * safe(bw, 0); // audio_bw
+  y += -0.05072329844 * safe(highRatio, 0); // high_ratio
+  y += 0.03387096196 * safe(lowRatio, 0); // low_ratio
+  y += -0.05656899753 * safe(flatness, 0); // audio_flatness
+  y += 0.04797356557 * safe(band50100, 0); // band_50_100
+  y += 0.0660858488 * safe(band100150, 0); // band_100_150
+  y += -0.00367718628 * safe(band150300, 0); // band_150_300
+  y += -0.02096291386 * safe(band300600, 0); // band_300_600
+  y += -0.05072329844 * safe(band6001000, 0); // band_600_1000
+  y += -9.107242809e-05 * safe(centroid, 0); // audio_centroid
+  y += -2.630367668e-05 * safe(rolloff85, 0); // audio_rolloff85
+  y += 3.601678491e-05 * safe(rolloff95, 0); // audio_rolloff95
+  y += -0.0006637244682 * safe(peakCount, 0); // audio_peak_count
+  y += 0.0219666197 * safe(peak2Ratio, 0); // audio_peak2_ratio
+  y += -0.0214754532 * safe(attackTime, 0); // audio_attack_time
+  y += -0.004164115146 * safe(decayRatio, 0); // audio_decay_ratio
+  return clamp(y, 0, 0.45);
+}
+
+function classifyRipenessAI120(fPeak, Q, tau, fStd, fVar, hollowIndex, bw, highRatio, lowRatio, flatness, band50100, band100150, band150300, band300600, band6001000, centroid, rolloff85, rolloff95, peakCount, peak2Ratio, attackTime, decayRatio) {
+  const scores = {};
+  scores["ดิบ"] = 1.324318489 + (0.0007401971657 * safe(fPeak, 0)) + (0.001910809935 * safe(Q, 0)) + (0.06888783743 * safe(tau, 0)) + (-0.002966669787 * safe(fStd, 0)) + (-7.918300535e-06 * safe(fVar, 0)) + (-4.652292288 * safe(hollowIndex, 0)) + (0.013150066 * safe(bw, 0)) + (5.115520706 * safe(highRatio, 0)) + (-1.263994987 * safe(lowRatio, 0)) + (5.053232338 * safe(flatness, 0)) + (-6.265044482 * safe(band50100, 0)) + (-1.102324856 * safe(band100150, 0)) + (0.06415939973 * safe(band150300, 0)) + (-0.7727392815 * safe(band300600, 0)) + (5.115520706 * safe(band6001000, 0)) + (0.006273663137 * safe(centroid, 0)) + (0.0004549967749 * safe(rolloff85, 0)) + (-0.002687723533 * safe(rolloff95, 0)) + (-0.1934804362 * safe(peakCount, 0)) + (2.919363258 * safe(peak2Ratio, 0)) + (1.261618807 * safe(attackTime, 0)) + (-0.5996568147 * safe(decayRatio, 0));
+  scores["สุกพอดี"] = 7.283615749 + (-2.346133725e-05 * safe(fPeak, 0)) + (0.01864863103 * safe(Q, 0)) + (-0.04572499611 * safe(tau, 0)) + (-0.004305097951 * safe(fStd, 0)) + (-7.845516265e-06 * safe(fVar, 0)) + (-0.03762723975 * safe(hollowIndex, 0)) + (-0.00733150268 * safe(bw, 0)) + (-0.009918922503 * safe(highRatio, 0)) + (-2.411323277 * safe(lowRatio, 0)) + (-2.622584929 * safe(flatness, 0)) + (-3.279214341 * safe(band50100, 0)) + (-2.874952072 * safe(band100150, 0)) + (-2.839748933 * safe(band150300, 0)) + (3.239788853 * safe(band300600, 0)) + (-0.009918922503 * safe(band6001000, 0)) + (-0.004854255835 * safe(centroid, 0)) + (-0.00324115371 * safe(rolloff85, 0)) + (-0.000349294902 * safe(rolloff95, 0)) + (0.1492281445 * safe(peakCount, 0)) + (-2.379615721 * safe(peak2Ratio, 0)) + (-5.304755135 * safe(attackTime, 0)) + (1.82357835 * safe(decayRatio, 0));
+  scores["สุกเกิน"] = -3.912438543 + (-0.00105576579 * safe(fPeak, 0)) + (-0.01372899287 * safe(Q, 0)) + (-0.01988107009 * safe(tau, 0)) + (0.006619856465 * safe(fStd, 0)) + (1.125292579e-05 * safe(fVar, 0)) + (5.485655786 * safe(hollowIndex, 0)) + (-0.0185248096 * safe(bw, 0)) + (-4.253650846 * safe(highRatio, 0)) + (1.757544452 * safe(lowRatio, 0)) + (-4.990712603 * safe(flatness, 0)) + (-9.040815212 * safe(band50100, 0)) + (3.744003707 * safe(band100150, 0)) + (4.927579161 * safe(band150300, 0)) + (-0.3046244636 * safe(band300600, 0)) + (-4.253650846 * safe(band6001000, 0)) + (-0.00325466485 * safe(centroid, 0)) + (0.001559080704 * safe(rolloff85, 0)) + (0.005654498352 * safe(rolloff95, 0)) + (-0.01476249404 * safe(peakCount, 0)) + (1.213161381 * safe(peak2Ratio, 0)) + (-10.82617296 * safe(attackTime, 0)) + (-1.089178285 * safe(decayRatio, 0));
+  scores["สุกเกิน"] = 4.406992402 + (-0.001511412761 * safe(fPeak, 0)) + (-0.01029284556 * safe(Q, 0)) + (0.02322852777 * safe(tau, 0)) + (-0.007681026983 * safe(fStd, 0)) + (-1.818842509e-05 * safe(fVar, 0)) + (0.4596520737 * safe(hollowIndex, 0)) + (-0.00422286552 * safe(bw, 0)) + (-2.637701556 * safe(highRatio, 0)) + (2.140606679 * safe(lowRatio, 0)) + (2.481036697 * safe(flatness, 0)) + (2.105722714 * safe(band50100, 0)) + (5.074390231 * safe(band100150, 0)) + (-1.268498341 * safe(band150300, 0)) + (-1.600113182 * safe(band300600, 0)) + (-2.637701556 * safe(band6001000, 0)) + (-0.004953684489 * safe(centroid, 0)) + (-0.003040676315 * safe(rolloff85, 0)) + (-0.003540661777 * safe(rolloff95, 0)) + (0.05827473168 * safe(peakCount, 0)) + (-0.929134213 * safe(peak2Ratio, 0)) + (7.797062937 * safe(attackTime, 0)) + (0.198231066 * safe(decayRatio, 0));
+  scores["ใกล้สุก"] = -9.102488097 + (0.001850442722 * safe(fPeak, 0)) + (0.003462397473 * safe(Q, 0)) + (-0.02651029899 * safe(tau, 0)) + (0.008332938256 * safe(fStd, 0)) + (2.26993161e-05 * safe(fVar, 0)) + (-1.255388332 * safe(hollowIndex, 0)) + (0.0169291118 * safe(bw, 0)) + (1.785750619 * safe(highRatio, 0)) + (-0.2228328681 * safe(lowRatio, 0)) + (0.07902849731 * safe(flatness, 0)) + (16.47935132 * safe(band50100, 0)) + (-4.84111701 * safe(band100150, 0)) + (-0.8834912865 * safe(band150300, 0)) + (-0.5623119264 * safe(band300600, 0)) + (1.785750619 * safe(band6001000, 0)) + (0.006788942038 * safe(centroid, 0)) + (0.004267752545 * safe(rolloff85, 0)) + (0.00092318186 * safe(rolloff95, 0)) + (0.0007400540501 * safe(peakCount, 0)) + (-0.8237747048 * safe(peak2Ratio, 0)) + (7.072246352 * safe(attackTime, 0)) + (-0.3329743167 * safe(decayRatio, 0));
+  let best = null, bestScore = -Infinity;
+  Object.keys(scores).forEach(k => { if(scores[k] > bestScore){ bestScore = scores[k]; best = k; } });
+  return best || "สุกพอดี";
+}
+function groupFromRipenessLabel(label){
+  if(label.includes("ดิบ")) return "E";
+  if(label.includes("ใกล้")) return "D";
+  if(label.includes("สุกเกิน") || label.includes("เน่า")) return "A";
+  if(label.includes("สุกเกิน")) return "B";
+  return "C";
+}
+
 
 function classifyRipenessAI(Q, f_mean, f_std, f_variance, hollow_index){
   Q = safe(Q, getFallback("Q"));
@@ -149,65 +299,30 @@ function classifyRipenessAI(Q, f_mean, f_std, f_variance, hollow_index){
 }
 function ripenessFromGroup(g){
   switch(g){
-    case "E":return{label:"ดิบ",detail:"เนื้อยังอ่อน",color:"#66bb6a",flesh:"#c8f6c4"};
-    case "D":return{label:"ใกล้สุก",detail:"เริ่มพร้อมรับประทาน",color:"#ffee58",flesh:"#ffe082"};
-    case "C":return{label:"สุกพอดี",detail:"เหมาะรับประทาน",color:"#ef5350",flesh:"#ff5252"};
-    case "B":return{label:"สุกมากพอดีกิน",detail:"หวานจัด เหมาะกินสด",color:"#ff7043",flesh:"#ff7043"};
-    case "A":return{label:"สุกเกิน/อาจเน่า",detail:"เนื้ออาจเริ่มนิ่ม",color:"#9e9e9e",flesh:"#bdbdbd"};
-    default:return{label:"-",detail:"-",color:"#cfd8dc",flesh:"#ff5252"};
+    case "A":
+    case "B":
+      return {label:"สุกเกิน",detail:"เริ่มเสี่ยงเนื้อนิ่มหรือมีโพรง",color:"#9e9e9e",flesh:"#9e9e9e"};
+    case "C":
+      return {label:"สุกพอดี",detail:"เหมาะรับประทาน",color:"#ef5350",flesh:"#ff5252"};
+    case "D":
+    case "E":
+    default:
+      return {label:"ใกล้สุก",detail:"ยังไม่ถึงจุดกินอร่อยที่สุด",color:"#ffee58",flesh:"#ffe082"};
   }
 }
 
-function predictBrixAI(f_peak, Q, tau, f_mean, f_std, f_variance, hollow_index){
-  let y = 13.559955
-    - 0.006833 * safe(f_peak, 580)
-    - 0.027722 * safe(Q, 13)
-    - 0.222925 * safe(tau, 0.11)
-    + 0.006632 * safe(f_mean, 540)
-    + 0.029494 * safe(f_std, 210)
-    - 0.00002448 * safe(f_variance, 44000)
-    - 17.683722 * safe(hollow_index, 0.41);
-  return clamp(y, 8.0, 13.5);
-}
-function predictFirmnessAI(f_peak, Q, tau, f_mean, f_std, f_variance, hollow_index){
-  let y = 91.213769
-    + 0.036581 * safe(f_peak, 580)
-    + 0.218081 * safe(Q, 13)
-    - 1.225991 * safe(tau, 0.11)
-    + 0.000810 * safe(f_mean, 540)
-    - 1.176498 * safe(f_std, 210)
-    + 0.002649 * safe(f_variance, 44000)
-    + 85.701637 * safe(hollow_index, 0.41);
-  return clamp(y, 3, 40);
-}
-function predictJuiceAI(f_peak, Q, tau, f_mean, f_std, f_variance, hollow_index){
-  let y = 96.877831
-    - 0.024732 * safe(f_peak, 580)
-    + 0.064951 * safe(Q, 13)
-    + 0.024828 * safe(tau, 0.11)
-    - 0.146046 * safe(f_mean, 540)
-    + 1.148979 * safe(f_std, 210)
-    - 0.002320 * safe(f_variance, 44000)
-    - 209.120774 * safe(hollow_index, 0.41);
-  return clamp(y, 30, 90);
-}
-function predictHollowAI(f_peak, Q, tau, f_mean, f_std, f_variance, hollow_index){
-  let y = -0.252084
-    - 0.0001524 * safe(f_peak, 580)
-    + 0.001956 * safe(Q, 13)
-    - 0.030957 * safe(tau, 0.11)
-    + 0.000204 * safe(f_mean, 540)
-    + 0.004154 * safe(f_std, 210)
-    - 0.000009286 * safe(f_variance, 44000)
-    - 0.400132 * safe(hollow_index, 0.41);
-  return clamp(y, 0, 0.35);
-}
+
+
+
+
+
+
 function perfectRipeDistance(brix,firmness,juice,hollow,Q,tau){
   const t={brix:11.8,firmness:13.5,juice:70,hollow:5,Q:11.5,tau:0.11};
   return Math.sqrt(Math.pow((brix-t.brix)/1.4,2)+Math.pow((firmness-t.firmness)/4.5,2)+Math.pow((juice-t.juice)/7.5,2)+Math.pow((hollow-t.hollow)/7,2)+Math.pow((Q-t.Q)/2.8,2)+Math.pow((tau-t.tau)/0.05,2));
 }
 function perfectRipeMeter(d){return clamp(100-d*18,0,100);}
-function perfectRipeLabel(score){if(score<35)return{group:"E",text:"ดิบ"};if(score<60)return{group:"D",text:"ใกล้สุก"};if(score<85)return{group:"C",text:"สุกพอดี"};return{group:"B",text:"สุกมากพอดีกิน"};}
+function perfectRipeLabel(score){if(score<35)return{group:"E",text:"ดิบ"};if(score<60)return{group:"D",text:"ใกล้สุก"};if(score<85)return{group:"C",text:"สุกพอดี"};return{group:"B",text:"สุกเกิน"};}
 
 async function setupAudio(){
   if(!audioContext) audioContext=new (window.AudioContext||window.webkitAudioContext)();
@@ -222,10 +337,52 @@ async function setupAudio(){
   }
 }
 async function startSession(){
-  tapFeatures=[];updateTapProgress();setStatus("กำลังเตรียมไมโครโฟน...");document.getElementById("startBtn").disabled=true;
+  tapFeatures=[];updateTapProgress();setStatus("กำลังเตรียมไมโครโฟน...");
+function shareResult(){
+  const text =
+    document.getElementById("result").innerText +
+    "\nMelon Score: " + document.getElementById("melonScore").innerText +
+    "\nคำแนะนำ: " + document.getElementById("buyBadge").innerText +
+    "\n" + document.getElementById("signalBadge").innerText;
+
+  // ดาวน์โหลด CSV ข้อมูลดิบทั้งหมดพร้อมกัน
+  const exported = downloadMeasurementsCSV(false);
+
+  if(navigator.share){
+    navigator.share({
+      title:"ผลวัดแตงโม MelodyMelonTap",
+      text: text + (exported ? "\n\nไฟล์ CSV ข้อมูลดิบถูกดาวน์โหลดไว้แล้ว" : "")
+    }).catch(()=>{});
+  }else{
+    alert(text + (exported ? "\n\nดาวน์โหลด CSV แล้ว" : "\n\nยังไม่มีข้อมูล CSV"));
+  }
+}
+
+document.getElementById("startBtn").disabled=true;
   setSignalQuality("รอวัด","mid");
   try{await setupAudio();await audioContext.resume();listening=true;captureState="idle";cooldownFrames=0;estimateNoiseFloor(12);}
-  catch(e){console.error(e);setStatus("ไม่สามารถเข้าถึงไมโครโฟนได้");document.getElementById("startBtn").disabled=false;setSignalQuality("ใช้งานไม่ได้","bad");}
+  catch(e){console.error(e);setStatus("ไม่สามารถเข้าถึงไมโครโฟนได้");
+function shareResult(){
+  const text =
+    document.getElementById("result").innerText +
+    "\nMelon Score: " + document.getElementById("melonScore").innerText +
+    "\nคำแนะนำ: " + document.getElementById("buyBadge").innerText +
+    "\n" + document.getElementById("signalBadge").innerText;
+
+  // ดาวน์โหลด CSV ข้อมูลดิบทั้งหมดพร้อมกัน
+  const exported = downloadMeasurementsCSV(false);
+
+  if(navigator.share){
+    navigator.share({
+      title:"ผลวัดแตงโม MelodyMelonTap",
+      text: text + (exported ? "\n\nไฟล์ CSV ข้อมูลดิบถูกดาวน์โหลดไว้แล้ว" : "")
+    }).catch(()=>{});
+  }else{
+    alert(text + (exported ? "\n\nดาวน์โหลด CSV แล้ว" : "\n\nยังไม่มีข้อมูล CSV"));
+  }
+}
+
+document.getElementById("startBtn").disabled=false;setSignalQuality("ใช้งานไม่ได้","bad");}
 }
 function estimateNoiseFloor(n){
   if(!listening)return;analyser.getFloatTimeDomainData(timeData);const rms=getRMS(timeData);noiseFloor=n===12?rms:0.85*noiseFloor+0.15*rms;
@@ -244,64 +401,336 @@ function loop(){
       const feat=extractFeaturesFromEvent(eventFrames);
       if(feat){tapFeatures.push(feat);updateTapProgress();}
       else{setStatus("เสียงไม่ชัด กรุณาเคาะใหม่");setSignalQuality("สัญญาณอ่อน","bad");}
-      if(tapFeatures.length>=NUM_TAPS){listening=false;analyzeSession();document.getElementById("startBtn").disabled=false;return;}
+      if(tapFeatures.length>=NUM_TAPS){listening=false;analyzeSession();
+function shareResult(){
+  const text =
+    document.getElementById("result").innerText +
+    "\nMelon Score: " + document.getElementById("melonScore").innerText +
+    "\nคำแนะนำ: " + document.getElementById("buyBadge").innerText +
+    "\n" + document.getElementById("signalBadge").innerText;
+
+  // ดาวน์โหลด CSV ข้อมูลดิบทั้งหมดพร้อมกัน
+  const exported = downloadMeasurementsCSV(false);
+
+  if(navigator.share){
+    navigator.share({
+      title:"ผลวัดแตงโม MelodyMelonTap",
+      text: text + (exported ? "\n\nไฟล์ CSV ข้อมูลดิบถูกดาวน์โหลดไว้แล้ว" : "")
+    }).catch(()=>{});
+  }else{
+    alert(text + (exported ? "\n\nดาวน์โหลด CSV แล้ว" : "\n\nยังไม่มีข้อมูล CSV"));
+  }
+}
+
+document.getElementById("startBtn").disabled=false;return;}
       captureState="idle";eventFrames=[];cooldownFrames=8;
       if(tapFeatures.length<NUM_TAPS)setStatus(`สำเร็จ ${tapFeatures.length}/${NUM_TAPS} ครั้ง กรุณาเคาะอีกครั้ง`);
     }
   }
   rafId=requestAnimationFrame(loop);
 }
+
 function extractFeaturesFromEvent(frames){
-  if(!frames||frames.length<6)return null;
-  const sr=audioContext.sampleRate, fftSize=analyser.fftSize, binSize=sr/fftSize;
-  const useFrames=frames.slice(0,6), nBins=useFrames[0].freq.length, avgDb=new Array(nBins).fill(0);
-  useFrames.forEach(fr=>{for(let i=0;i<nBins;i++)avgDb[i]+=fr.freq[i];});
-  for(let i=0;i<nBins;i++)avgDb[i]/=useFrames.length;
-  const freqs=[],mags=[];let totalEnergy=0,lowE=0,highE=0,geo=0,arith=0;
+  if(!frames || frames.length < 6) return null;
+  const sr = audioContext.sampleRate;
+  const fftSize = analyser.fftSize;
+  const binSize = sr / fftSize;
+  const useFrames = frames.slice(0,6);
+  const nBins = useFrames[0].freq.length;
+  const avgDb = new Array(nBins).fill(0);
+  useFrames.forEach(fr => { for(let i=0;i<nBins;i++) avgDb[i] += fr.freq[i]; });
+  for(let i=0;i<nBins;i++) avgDb[i] /= useFrames.length;
+
+  const freqs=[], mags=[];
+  let totalEnergy=0, lowE=0, midE=0, highE=0;
+  let band50100=0, band100150=0, band150300=0, band300600=0, band6001000=0;
+  let geo=0, arith=0;
+
   for(let i=0;i<nBins;i++){
-    const f=i*binSize;if(f>=F_MIN&&f<=F_MAX){
-      const mag=Math.max(1e-12,Math.pow(10,avgDb[i]/20));freqs.push(f);mags.push(mag);totalEnergy+=mag;arith+=mag;geo+=Math.log(mag);
-      if(f<300)lowE+=mag; if(f>=300)highE+=mag;
+    const f = i * binSize;
+    if(f >= F_MIN && f <= F_MAX){
+      const mag = Math.max(1e-12, Math.pow(10, avgDb[i]/20));
+      freqs.push(f); mags.push(mag);
+      totalEnergy += mag; arith += mag; geo += Math.log(mag);
+      if(f < 300) lowE += mag; else if(f < 600) midE += mag; else highE += mag;
+      if(f >= 50 && f < 100) band50100 += mag;
+      else if(f >= 100 && f < 150) band100150 += mag;
+      else if(f >= 150 && f < 300) band150300 += mag;
+      else if(f >= 300 && f < 600) band300600 += mag;
+      else if(f >= 600 && f <= 1000) band6001000 += mag;
     }
   }
-  const sum=mags.reduce((a,b)=>a+b,0); if(sum<=1e-9)return null;
-  let peakIdx=0;for(let i=1;i<mags.length;i++)if(mags[i]>mags[peakIdx])peakIdx=i;
-  const fPeak=safe(freqs[peakIdx],getFallback("fPeak")), peak=mags[peakIdx], target=peak/Math.sqrt(2);
-  let l=peakIdx;while(l>0&&mags[l]>=target)l--; let r=peakIdx;while(r<mags.length-1&&mags[r]>=target)r++;
-  const bw=(r>l)?Math.max(freqs[r]-freqs[l],1):getFallback("bw");
-  const Q=fPeak/bw;
-  let fMean=0;for(let i=0;i<freqs.length;i++)fMean+=freqs[i]*mags[i];fMean/=sum;
-  let fVar=0;for(let i=0;i<freqs.length;i++)fVar+=mags[i]*Math.pow(freqs[i]-fMean,2);fVar/=sum;
-  const fStd=Math.sqrt(Math.max(0,fVar)), hollow=fMean>0?fStd/fMean:getFallback("hollow");
-  const highRatio=highE/(totalEnergy||1), lowRatio=lowE/(totalEnergy||1), flatness=Math.exp(geo/mags.length)/(arith/mags.length);
+  const sum = mags.reduce((a,b)=>a+b,0);
+  if(sum <= 1e-9) return null;
 
-  const env=frames.map(fr=>getRMS(fr.time)), smooth=movingAverage(env,3), maxEnv=Math.max(...smooth), start=Math.max(0,smooth.indexOf(maxEnv));
-  const xs=[],ys=[],dt=1/60; for(let i=start;i<smooth.length;i++){if(smooth[i]>maxEnv*.1){xs.push((i-start)*dt);ys.push(Math.log(smooth[i]));}}
-  let tau=getFallback("tau"), tauWasFallback=true;
-  if(xs.length>=4){const n=xs.length;let sx=0,sy=0,sxx=0,sxy=0;for(let i=0;i<n;i++){sx+=xs[i];sy+=ys[i];sxx+=xs[i]*xs[i];sxy+=xs[i]*ys[i];}const den=n*sxx-sx*sx;if(den!==0){const slope=(n*sxy-sx*sy)/den;if(slope<0&&Number.isFinite(-1/slope)){tau=-1/slope;tauWasFallback=false;}}}
-  const quality=assessSignalQuality({Q,bw,fPeak,tau,tauWasFallback,totalEnergy});
-  return {fPeak,Q,tau,fMean,fStd,fVar,hollow,bw,highRatio,lowRatio,flatness,quality,tauWasFallback};
+  let peakIdx=0;
+  for(let i=1;i<mags.length;i++) if(mags[i] > mags[peakIdx]) peakIdx = i;
+  const fPeak = safe(freqs[peakIdx], getFallback("fPeak"));
+  const peak = mags[peakIdx];
+  const target = peak / Math.sqrt(2);
+  let l=peakIdx; while(l>0 && mags[l] >= target) l--;
+  let r=peakIdx; while(r<mags.length-1 && mags[r] >= target) r++;
+  const bw = (r>l) ? Math.max(freqs[r]-freqs[l],1) : getFallback("bw");
+  const Q = fPeak / bw;
+
+  let fMean=0;
+  for(let i=0;i<freqs.length;i++) fMean += freqs[i]*mags[i];
+  fMean /= sum;
+  let fVar=0;
+  for(let i=0;i<freqs.length;i++) fVar += mags[i]*Math.pow(freqs[i]-fMean,2);
+  fVar /= sum;
+  const fStd = Math.sqrt(Math.max(0,fVar));
+  const hollow = fMean > 0 ? fStd / fMean : getFallback("hollow");
+
+  let cum=0, rolloff85=freqs[freqs.length-1], rolloff95=freqs[freqs.length-1];
+  for(let i=0;i<freqs.length;i++){
+    cum += mags[i];
+    if(cum >= 0.85*sum && rolloff85 === freqs[freqs.length-1]) rolloff85 = freqs[i];
+    if(cum >= 0.95*sum){ rolloff95 = freqs[i]; break; }
+  }
+
+  // Count local peaks above 25% of max
+  let peakCount=0, peak2Ratio=0, peak2Freq=0, peak2Mag=0;
+  for(let i=1;i<mags.length-1;i++){
+    if(mags[i] > mags[i-1] && mags[i] > mags[i+1] && mags[i] > peak*0.25){
+      peakCount++;
+      if(i !== peakIdx && mags[i] > peak2Mag){ peak2Mag = mags[i]; peak2Freq = freqs[i]; }
+    }
+  }
+  peak2Ratio = peak > 0 ? peak2Mag / peak : 0;
+
+  const highRatio = highE/(totalEnergy||1), lowRatio = lowE/(totalEnergy||1), midRatio = midE/(totalEnergy||1);
+  band50100 /= (totalEnergy||1); band100150 /= (totalEnergy||1); band150300 /= (totalEnergy||1); band300600 /= (totalEnergy||1); band6001000 /= (totalEnergy||1);
+  const flatness = Math.exp(geo/mags.length)/(arith/mags.length);
+
+  const env = frames.map(fr => getRMS(fr.time));
+  const smooth = movingAverage(env,3);
+  const maxEnv = Math.max(...smooth);
+  const maxIdx = smooth.indexOf(maxEnv);
+  const attackTime = Math.max(0, maxIdx) / 60;
+  const decayRatio = maxEnv > 0 ? (smooth[smooth.length-1] / maxEnv) : 0;
+
+  const xs=[], ys=[], dt=1/60;
+  for(let i=maxIdx;i<smooth.length;i++){
+    if(smooth[i] > maxEnv*0.1){ xs.push((i-maxIdx)*dt); ys.push(Math.log(smooth[i])); }
+  }
+  let tau = getFallback("tau"), tauWasFallback = true;
+  if(xs.length >= 4){
+    const n=xs.length; let sx=0,sy=0,sxx=0,sxy=0;
+    for(let i=0;i<n;i++){ sx+=xs[i]; sy+=ys[i]; sxx+=xs[i]*xs[i]; sxy+=xs[i]*ys[i]; }
+    const den = n*sxx - sx*sx;
+    if(den !== 0){
+      const slope = (n*sxy - sx*sy)/den;
+      if(slope < 0 && Number.isFinite(-1/slope)){ tau = -1/slope; tauWasFallback = false; }
+    }
+  }
+
+  const quality = assessSignalQuality({Q,bw,fPeak,tau,tauWasFallback,totalEnergy});
+  return {fPeak,Q,tau,fMean,fStd,fVar,hollow,bw,highRatio,lowRatio,midRatio,flatness,
+          band50100,band100150,band150300,band300600,band6001000,
+          centroid:fMean,rolloff85,rolloff95,peakCount,peak2Ratio,peak2Freq,
+          attackTime,decayRatio,quality,tauWasFallback};
 }
+
 function assessSignalQuality(feat){
   let score=100;if(!Number.isFinite(feat.Q)||feat.Q<=0)score-=35;if(!Number.isFinite(feat.bw)||feat.bw<3||feat.bw>250)score-=20;if(!Number.isFinite(feat.tau)||feat.tau<=0)score-=20;if(feat.fPeak<60||feat.fPeak>950)score-=12;if(feat.tauWasFallback)score-=12;
   score=clamp(score,0,100);return{score,label:score>=75?"สัญญาณดี":score>=50?"สัญญาณปานกลาง":"สัญญาณอ่อน",cls:score>=75?"good":score>=50?"mid":"bad"};
 }
 
+
+// ===== Field Calibration v22.5 =====
+// From field-test 70 samples: Brix +3.447, Juice +10.396, Hollow -3.856
+function calibrateBrixField(rawBrix){ return clamp(rawBrix + 3.447, 7.0, 14.8); }
+function calibrateJuiceField(rawJuice){ return clamp(rawJuice + 10.396, 30, 95); }
+function calibrateHollowField(rawHollowPercent){ return clamp(rawHollowPercent - 3.856, 0, 45); }
+function calibrateFirmnessField(rawFirmness){ return clamp(rawFirmness - 5.5, 0, 40); }
+
+
+// ===== Field Fix v22.6: Ripeness + Hollow =====
+// From current field-test set with real slice-photo hollow labels.
+// Main finding: Audio120 ripeness classifier was unstable in field use.
+// Use field-calibrated rule for ripeness and group-aware hollow correction.
+
+
+function calibrateHollowFieldV226(rawHollowPercent, currentHollowPercent, finalGroup){
+  // In field data, Hollow_real in Excel is fraction, e.g. 0.25 = 25%.
+  // For non-overripe groups, real slice photos mostly showed no hollow (~1%).
+  if(finalGroup !== "A"){
+    return clamp(Math.max(1.0, currentHollowPercent * 0.35), 0, 8);
+  }
+
+  // For overripe/possible rotten group, hollow needs stronger scaling.
+  // Fit from slice-photo real hollow: Hollow_real_pct ≈ 2.835*hollow_raw - 3.008
+  const h = 2.8351 * safe(rawHollowPercent, currentHollowPercent) - 3.0081;
+  return clamp(h, 0, 45);
+}
+
+
+// ===== TEST5 Field Tuning v22.7 =====
+
+
+function calibrateHollowFieldV227(hollowPercent){
+  return clamp(hollowPercent + 0.65, 0, 45);
+}
+
+function calibrateBrixFieldV227(rawBrix, Q, fMean, fStd, hollowIndex, lowRatio, flatness, band150300, rolloff85, peakCount){
+  let y = 34.05303931;
+  y += -0.8725535409 * safe(rawBrix,0); // brix_app
+  y += 0.01580385011 * safe(Q,0); // Q
+  y += -0.02412794495 * safe(fMean,0); // f_mean
+  y += -0.001936959828 * safe(fStd,0); // f_std
+  y += -9.058130684 * safe(hollowIndex,0); // hollow_index
+  y += 6.634628269 * safe(lowRatio,0); // low_ratio
+  y += -1.00495137 * safe(flatness,0); // flatness
+  y += -1.625781807 * safe(band150300,0); // band_150_300
+  y += 0.00545197905 * safe(rolloff85,0); // rolloff85
+  y += -0.05576215563 * safe(peakCount,0); // peak_count
+  return clamp(y,7,15);
+}
+
+function calibrateFirmnessFieldV227(rawFirmness, Q, fMean, fStd, hollowIndex, lowRatio, flatness, band150300, rolloff85, peakCount){
+  let y = -75.38585414;
+  y += 1.026848678 * safe(rawFirmness,0); // firmness_app
+  y += 0.345572688 * safe(Q,0); // Q
+  y += 0.1727779902 * safe(fMean,0); // f_mean
+  y += -0.2603855866 * safe(fStd,0); // f_std
+  y += 203.9153187 * safe(hollowIndex,0); // hollow_index
+  y += -96.46425817 * safe(lowRatio,0); // low_ratio
+  y += 23.48036512 * safe(flatness,0); // flatness
+  y += 17.82136841 * safe(band150300,0); // band_150_300
+  y += -0.06377266223 * safe(rolloff85,0); // rolloff85
+  y += -0.2387302737 * safe(peakCount,0); // peak_count
+  return clamp(y,0,40);
+}
+
+function calibrateJuiceFieldV227(rawJuice, Q, fMean, fStd, hollowIndex, lowRatio, flatness, band150300, rolloff85, peakCount){
+  let y = 250.1177768;
+  y += -0.9230081172 * safe(rawJuice,0); // juice_app
+  y += 0.4333387228 * safe(Q,0); // Q
+  y += -0.2730292667 * safe(fMean,0); // f_mean
+  y += 0.1632822028 * safe(fStd,0); // f_std
+  y += -60.05458134 * safe(hollowIndex,0); // hollow_index
+  y += -40.9019421 * safe(lowRatio,0); // low_ratio
+  y += -87.47464536 * safe(flatness,0); // flatness
+  y += 69.03331565 * safe(band150300,0); // band_150_300
+  y += 0.05447627826 * safe(rolloff85,0); // rolloff85
+  y += 0.9720033273 * safe(peakCount,0); // peak_count
+  return clamp(y,30,95);
+}
+
+
+
+
+
+
+
+function isBoundaryNearRipe(brix, juice, lowRatio, hollowPercent){
+  return (
+    brix >= 10.5 && brix <= 11.5 &&
+    juice >= 52 && juice <= 64 &&
+    lowRatio >= 0.18 && lowRatio <= 0.27 &&
+    hollowPercent < 15
+  );
+}
+
+function classifyRipenessAIv25(){
+  // Ripeness-only AI classifier trained from 210 field-test samples.
+  // Output groups: D=ใกล้สุก, C=สุกพอดี, A=สุกเกิน
+  if(safe(centroidUse, 0) <= 532.0350037) {
+    if(safe(band150300Use, 0) <= 0.1873000041) {
+      if(safe(peakCountUse, 0) <= 16.5) {
+        if(safe(band300600Use, 0) <= 0.2462499961) {
+          return "D"; // ใกล้สุก
+        } else {
+          return "C"; // สุกพอดี
+        }
+      } else {
+        if(safe(band100150Use, 0) <= 0.06430000067) {
+          return "A"; // สุกเกิน
+        } else {
+          return "C"; // สุกพอดี
+        }
+      }
+    } else {
+      if(safe(band50100Use, 0) <= 0.06670000032) {
+        return "A"; // สุกเกิน
+      } else {
+        if(safe(lowRatioUse, 0) <= 0.3972499967) {
+          return "C"; // สุกพอดี
+        } else {
+          return "A"; // สุกเกิน
+        }
+      }
+    }
+  } else {
+    if(safe(rolloff85Use, 0) <= 857.4249878) {
+      if(safe(band100150Use, 0) <= 0.06329999864) {
+        if(safe(peak2RatioUse, 0) <= 0.8662999868) {
+          return "C"; // สุกพอดี
+        } else {
+          return "A"; // สุกเกิน
+        }
+      } else {
+        return "D"; // ใกล้สุก
+      }
+    } else {
+      return "D"; // ใกล้สุก
+    }
+  }
+}
+
 function analyzeSession(){
-  const avg={};["fPeak","Q","tau","fMean","fStd","fVar","hollow","bw","highRatio","lowRatio","flatness"].forEach(k=>{avg[k]=trimmedMean(tapFeatures.map(t=>t[k]));if(!Number.isFinite(avg[k]))avg[k]=getFallback(k);});
+  const avg={};["fPeak","Q","tau","fMean","fStd","fVar","hollow","bw","highRatio","lowRatio","flatness","band50100","band100150","band150300","band300600","band6001000","centroid","rolloff85","rolloff95","peakCount","peak2Ratio","attackTime","decayRatio"].forEach(k=>{avg[k]=trimmedMean(tapFeatures.map(t=>t[k]));if(!Number.isFinite(avg[k]))avg[k]=getFallback(k);});
   const qScores=tapFeatures.map(t=>t.quality?.score??50), sigScore=trimmedMean(qScores);
   const sigLabel=sigScore>=75?"สัญญาณดี":sigScore>=50?"สัญญาณปานกลาง":"สัญญาณอ่อน", sigCls=sigScore>=75?"good":sigScore>=50?"mid":"bad";setSignalQuality(sigLabel,sigCls);
   const tauFallbackCount=tapFeatures.filter(t=>t.tauWasFallback).length;
   const tauUsed=tauFallbackCount>=3?getFallback("tau"):safe(avg.tau,getFallback("tau"));
   const Quse=safe(avg.Q,getFallback("Q")), fMeanUse=safe(avg.fMean,getFallback("fMean")), fStdUse=safe(avg.fStd,getFallback("fStd")), fVarUse=safe(avg.fVar,getFallback("fVar")), hollowIndexUse=safe(avg.hollow,getFallback("hollow"));
-  const brix=predictBrixAI(avg.fPeak,Quse,tauUsed,fMeanUse,fStdUse,fVarUse,hollowIndexUse);
-  const firmness=predictFirmnessAI(avg.fPeak,Quse,tauUsed,fMeanUse,fStdUse,fVarUse,hollowIndexUse);
-  const juice=predictJuiceAI(avg.fPeak,Quse,tauUsed,fMeanUse,fStdUse,fVarUse,hollowIndexUse);
-  const hollowPercent=predictHollowAI(avg.fPeak,Quse,tauUsed,fMeanUse,fStdUse,fVarUse,hollowIndexUse)*100;
+  const bwUse=safe(avg.bw,getFallback("bw")), highRatioUse=safe(avg.highRatio,0.1), lowRatioUse=safe(avg.lowRatio,0.5), flatnessUse=safe(avg.flatness,0.15);
+  const band50100Use=safe(avg.band50100,0), band100150Use=safe(avg.band100150,0), band150300Use=safe(avg.band150300,0), band300600Use=safe(avg.band300600,0), band6001000Use=safe(avg.band6001000,0);
+  const centroidUse=safe(avg.centroid,fMeanUse), rolloff85Use=safe(avg.rolloff85,300), rolloff95Use=safe(avg.rolloff95,500), peakCountUse=safe(avg.peakCount,1), peak2RatioUse=safe(avg.peak2Ratio,0), attackTimeUse=safe(avg.attackTime,0.08), decayRatioUse=safe(avg.decayRatio,0.25);
+  const brixRaw=predictBrixAI(avg.fPeak,Quse,tauUsed,fStdUse,fVarUse,hollowIndexUse,bwUse,highRatioUse,lowRatioUse,flatnessUse,band50100Use,band100150Use,band150300Use,band300600Use,band6001000Use,centroidUse,rolloff85Use,rolloff95Use,peakCountUse,peak2RatioUse,attackTimeUse,decayRatioUse);
+  let brix=calibrateBrixField(brixRaw);
+  brix=calibrateBrixFieldV227(brix,Quse,fMeanUse,fStdUse,hollowIndexUse,lowRatioUse,flatnessUse,band150300Use,rolloff85Use,peakCountUse);
+  const firmnessRaw=predictFirmnessAI(avg.fPeak,Quse,tauUsed,fStdUse,fVarUse,hollowIndexUse,bwUse,highRatioUse,lowRatioUse,flatnessUse,band50100Use,band100150Use,band150300Use,band300600Use,band6001000Use,centroidUse,rolloff85Use,rolloff95Use,peakCountUse,peak2RatioUse,attackTimeUse,decayRatioUse);
+  let firmness=calibrateFirmnessField(firmnessRaw);
+  firmness=calibrateFirmnessFieldV227(firmness,Quse,fMeanUse,fStdUse,hollowIndexUse,lowRatioUse,flatnessUse,band150300Use,rolloff85Use,peakCountUse);
+  const juiceRaw=predictJuiceAI(avg.fPeak,Quse,tauUsed,fStdUse,fVarUse,hollowIndexUse,bwUse,highRatioUse,lowRatioUse,flatnessUse,band50100Use,band100150Use,band150300Use,band300600Use,band6001000Use,centroidUse,rolloff85Use,rolloff95Use,peakCountUse,peak2RatioUse,attackTimeUse,decayRatioUse);
+  let juice=calibrateJuiceField(juiceRaw);
+  juice=calibrateJuiceFieldV227(juice,Quse,fMeanUse,fStdUse,hollowIndexUse,lowRatioUse,flatnessUse,band150300Use,rolloff85Use,peakCountUse);
+  const hollowRawPercent=predictHollowAI(avg.fPeak,Quse,tauUsed,fStdUse,fVarUse,hollowIndexUse,bwUse,highRatioUse,lowRatioUse,flatnessUse,band50100Use,band100150Use,band150300Use,band300600Use,band6001000Use,centroidUse,rolloff85Use,rolloff95Use,peakCountUse,peak2RatioUse,attackTimeUse,decayRatioUse)*100;
+  let hollowPercent=calibrateHollowField(hollowRawPercent);
   const ripeDistance=perfectRipeDistance(brix,firmness,juice,hollowPercent,Quse,tauUsed);
   const ripeMeter=perfectRipeMeter(ripeDistance);
-  const group=classifyRipenessAI(Quse,fMeanUse,fStdUse,fVarUse,hollowIndexUse);
+  const ripenessLabel120=classifyRipenessAI120(avg.fPeak,Quse,tauUsed,fStdUse,fVarUse,hollowIndexUse,bwUse,highRatioUse,lowRatioUse,flatnessUse,band50100Use,band100150Use,band150300Use,band300600Use,band6001000Use,centroidUse,rolloff85Use,rolloff95Use,peakCountUse,peak2RatioUse,attackTimeUse,decayRatioUse);
+
+  // v22.6: use field-calibrated ripeness rule as final decision
+  let group = classifyRipenessAIv25();
+
+  // Recalibrate hollow after final ripeness group is known
+  const hollowPercentField = calibrateHollowFieldV226(hollowRawPercent, hollowPercent, group);
+  const hollowPercentOriginal = hollowPercent;
+  hollowPercent = calibrateHollowFieldV227(hollowPercentField);
+
   const ripe=ripenessFromGroup(group);
+
+  const isBoundaryRipeness = isBoundaryNearRipe(
+    brix,
+    juice,
+    lowRatioUse,
+    hollowPercent
+  );
+
+  let ripenessExtraText = "";
+
+  if(isBoundaryRipeness){
+    if(group === "C"){
+      ripenessExtraText = "แตงโมลูกนี้เริ่มเข้าสู่ช่วงสุกพอดี";
+    }else if(group === "D" || group === "E"){
+      ripenessExtraText = "แตงโมลูกนี้ใกล้สุก แต่อาจเริ่มเข้าสู่ช่วงสุกพอดี";
+    }
+  }
+
   const crispPct=crispPercent(firmness), crispText=crispLabel(crispPct), hollowText=hollowDisplayLabel(hollowPercent);
 
   const qSpread=spread(tapFeatures.map(t=>t.Q)), tauSpread=spread(tapFeatures.map(t=>t.tau)), fPeakSpread=spread(tapFeatures.map(t=>t.fPeak));
@@ -337,10 +766,71 @@ function analyzeSession(){
   document.getElementById("confVal").innerText=`${conf.toFixed(0)} %`;document.getElementById("groupVal").innerText=`ช่วงสุก: ${group}`;
   setBar("brixBar",brix/14*100);setBar("firmBar",crispPct);setBar("juiceBar",juice);setBar("hollowBar",100-hollowPercent*2.5);setBar("confBar",conf);
   document.getElementById("featureList").innerHTML=`
-    <li>Q: ${Quse.toFixed(2)}</li><li>tau: ${tauUsed.toFixed(3)}</li><li>f_peak: ${avg.fPeak.toFixed(1)} Hz</li><li>f_mean: ${fMeanUse.toFixed(1)} Hz</li><li>f_std: ${fStdUse.toFixed(1)} Hz</li><li>f_variance: ${fVarUse.toFixed(1)}</li><li>hollow_index: ${hollowIndexUse.toFixed(3)}</li><li>Firmness raw: ${firmness.toFixed(1)} N</li><li>high_ratio: ${avg.highRatio.toFixed(3)}</li><li>low_ratio: ${avg.lowRatio.toFixed(3)}</li><li>flatness: ${avg.flatness.toFixed(3)}</li><li>Raw2 ripeness logic: ${group}</li><li>Perfect ripe meter: ${ripeMeter.toFixed(0)}/100</li><li>คุณภาพสัญญาณ: ${sigLabel} (${sigScore.toFixed(0)}%)</li><li>Q spread: ${qSpread.toFixed(2)}</li><li>tau fallback: ${tauFallbackCount}/${NUM_TAPS}</li><li>สถานะผล: ${warnLowQuality ? "ใช้ได้แต่ควรวัดซ้ำเพื่อยืนยัน" : "ใช้ได้"}</li>`;
+    <li>Q: ${Quse.toFixed(2)}</li><li>tau: ${tauUsed.toFixed(3)}</li><li>f_peak: ${avg.fPeak.toFixed(1)} Hz</li><li>f_mean: ${fMeanUse.toFixed(1)} Hz</li><li>f_std: ${fStdUse.toFixed(1)} Hz</li><li>f_variance: ${fVarUse.toFixed(1)}</li><li>hollow_index: ${hollowIndexUse.toFixed(3)}</li><li>Brix raw: ${brixRaw.toFixed(2)} °Bx → calibrated: ${brix.toFixed(2)} °Bx</li><li>Firmness raw model: ${firmnessRaw.toFixed(1)} N → calibrated: ${firmness.toFixed(1)} N</li><li>Juice raw: ${juiceRaw.toFixed(1)}% → calibrated: ${juice.toFixed(1)}%</li><li>Hollow raw: ${hollowRawPercent.toFixed(1)}% → v22.5: ${hollowPercentOriginal.toFixed(1)}% → v22.6: ${hollowPercent.toFixed(1)}%</li><li>high_ratio: ${highRatioUse.toFixed(3)}</li><li>low_ratio: ${lowRatioUse.toFixed(3)}</li><li>flatness: ${flatnessUse.toFixed(3)}</li><li>rolloff85: ${rolloff85Use.toFixed(1)} Hz</li><li>peak count: ${peakCountUse.toFixed(0)}</li><li>low_ratio: ${avg.lowRatio.toFixed(3)}</li><li>flatness: ${avg.flatness.toFixed(3)}</li><li>Ripeness AI v25 final group: ${group}</li><li>Audio120 ripeness label: ${ripenessLabel120}</li><li>Final ripeness group: ${group} (v25 ripeness AI)</li><li>Perfect ripe meter: ${ripeMeter.toFixed(0)}/100</li><li>คุณภาพสัญญาณ: ${sigLabel} (${sigScore.toFixed(0)}%)</li><li>Q spread: ${qSpread.toFixed(2)}</li><li>tau fallback: ${tauFallbackCount}/${NUM_TAPS}</li><li>สถานะผล: ${warnLowQuality ? "ใช้ได้แต่ควรวัดซ้ำเพื่อยืนยัน" : "ใช้ได้"}</li>`;
   saveHistory(ripe.label,brix,conf,melonScore,buyText,sigScore);
-  speakSummaryAI({ripenessText:(group==="C"||group==="B")?"แตงโมลูกนี้อยู่ในช่วงพอดีกิน":group==="D"?"แตงโมลูกนี้ใกล้สุก":group==="E"?"แตงโมลูกนี้ยังค่อนข้างดิบ":"แตงโมลูกนี้มีแนวโน้มสุกมาก", sweetnessText:sweetnessLabel(brix), crispText, juiceText:juiceLabel(juice), hollowText, qualityText});
-  setStatus("ตรวจวัดเสร็จแล้ว");
+  speakSummaryAI({ripenessText:(ripenessExtraText || (group==="C" ? "แตงโมลูกนี้อยู่ในช่วงสุกพอดี" : ((group==="A"||group==="B") ? "แตงโมลูกนี้มีแนวโน้มสุกเกิน" : "แตงโมลูกนี้ใกล้สุก"))), sweetnessText:sweetnessLabel(brix), crispText, juiceText:juiceLabel(juice), hollowText, qualityText, hollowPercent});
+  
+  saveMeasurementDebug({
+    timestamp: new Date().toISOString(),
+    sample_id: "WM" + String(measurementHistory.length + 1).padStart(3,"0"),
+
+    ripeness_app: ripe.label,
+    ripeness_group: group,
+    audio120_ripeness: ripenessLabel120,
+
+    brix_app: Number(brix.toFixed(2)),
+    firmness_app: Number(firmness.toFixed(2)),
+    juice_app: Number(juice.toFixed(2)),
+    hollow_app: Number(hollowPercent.toFixed(2)),
+    brix_raw: Number(brixRaw.toFixed(2)),
+    firmness_raw_model: Number(firmnessRaw.toFixed(2)),
+    juice_raw: Number(juiceRaw.toFixed(2)),
+    hollow_raw: Number(hollowRawPercent.toFixed(2)),
+    hollow_v22_5: Number(hollowPercentOriginal.toFixed(2)),
+    hollow_v22_6: Number(hollowPercent.toFixed(2)),
+
+    confidence_app: Number(conf.toFixed(1)),
+    melon_score: Number(melonScore),
+
+    Q: Number(Quse.toFixed(4)),
+    tau: Number(tauUsed.toFixed(4)),
+    f_peak: Number(avg.fPeak.toFixed(2)),
+    f_mean: Number(fMeanUse.toFixed(2)),
+    f_std: Number(fStdUse.toFixed(2)),
+    f_variance: Number(fVarUse.toFixed(2)),
+    hollow_index: Number(hollowIndexUse.toFixed(4)),
+
+    bandwidth: Number(bwUse.toFixed(2)),
+    high_ratio: Number(highRatioUse.toFixed(4)),
+    low_ratio: Number(lowRatioUse.toFixed(4)),
+    flatness: Number(flatnessUse.toFixed(4)),
+
+    band_50_100: Number(band50100Use.toFixed(4)),
+    band_100_150: Number(band100150Use.toFixed(4)),
+    band_150_300: Number(band150300Use.toFixed(4)),
+    band_300_600: Number(band300600Use.toFixed(4)),
+    band_600_1000: Number(band6001000Use.toFixed(4)),
+
+    centroid: Number(centroidUse.toFixed(2)),
+    rolloff85: Number(rolloff85Use.toFixed(2)),
+    rolloff95: Number(rolloff95Use.toFixed(2)),
+
+    peak_count: Number(peakCountUse.toFixed(0)),
+    peak2_ratio: Number(peak2RatioUse.toFixed(4)),
+    attack_time: Number(attackTimeUse.toFixed(4)),
+    decay_ratio: Number(decayRatioUse.toFixed(4)),
+
+    signal_quality: sigLabel,
+    signal_score: Number(sigScore.toFixed(1)),
+    q_spread: Number(qSpread.toFixed(3)),
+    tau_fallback_count: tauFallbackCount,
+    measurement_status: warnLowQuality ? "ควรวัดซ้ำ" : "ใช้ได้",
+    model_version: "v25-ripeness-ai",
+    boundary_ripeness_zone: isBoundaryRipeness
+  });
+
+
+setStatus("ตรวจวัดเสร็จแล้ว");
 }
 function showRetry(conf,sigLabel,sigScore,qSpread,tauSpread,tauFallbackCount){
   document.getElementById("result").style.backgroundColor="#fff3cd";document.getElementById("result").innerHTML=`ผลการวัดยังไม่นิ่ง<br>คุณภาพสัญญาณ: ${sigLabel} (${sigScore.toFixed(0)}%)<br>ความเชื่อมั่น: ${conf.toFixed(0)}%<br>กรุณาเคาะใหม่อีกครั้ง`;
@@ -349,28 +839,205 @@ function showRetry(conf,sigLabel,sigScore,qSpread,tauSpread,tauFallbackCount){
   setStatus("ผลยังไม่นิ่ง กรุณาเคาะใหม่");speakText("ผลการวัดยังไม่นิ่ง กรุณาเคาะใหม่อีกครั้ง");
 }
 
-function speakSummaryAI(summary){
-  const text =
-    `${summary.ripenessText} ... ` +
-    `${summary.sweetnessText} ... ` +
-    `${summary.crispText} ... ` +
-    `${summary.juiceText} ... ` +
-    `${summary.hollowText} ... ` +
-    `${summary.qualityText}`;
-  speakText(text);
+
+
+// ===== Hollow Warning Voice v24.2 =====
+
+
+
+
+
+
+// ===== Hollow Warning Voice v24.3 FIX =====
+function getHollowWarningByPercent(hollowPercent){
+  const h = Number(hollowPercent);
+  if(!Number.isFinite(h)) return {text:"", level:"none"};
+  if(h >= 18){
+    return {
+      text:"คำเตือน แตงโมลูกนี้มีโพรงภายในค่อนข้างมาก",
+      level:"high"
+    };
+  }
+  if(h >= 7){
+    return {
+      text:"คำเตือน แตงโมลูกนี้เริ่มมีโพรงภายใน",
+      level:"medium"
+    };
+  }
+  return {text:"", level:"none"};
 }
-function speakText(text){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="th-TH";u.rate=.84;u.pitch=.98;u.volume=1;const v=speechSynthesis.getVoices().find(v=>v.lang&&v.lang.toLowerCase().includes("th"));if(v)u.voice=v;speechSynthesis.speak(u);}catch(e){console.log(e);}}
+
+function playWarningBeep(level="medium"){
+  try{
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioCtx();
+
+    const beep = (freq, start, duration, gainValue) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime + start);
+      gain.gain.exponentialRampToValueAtTime(gainValue, ctx.currentTime + start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + duration + 0.03);
+    };
+
+    if(level === "high"){
+      beep(740, 0.00, 0.18, 0.16);
+      beep(740, 0.28, 0.18, 0.16);
+    }else{
+      beep(740, 0.00, 0.22, 0.14);
+    }
+
+    setTimeout(() => ctx.close().catch(()=>{}), level === "high" ? 1100 : 800);
+  }catch(e){
+    console.log("beep error", e);
+  }
+}
+
+
+function speakSummaryAI(summary){
+  const warning = getHollowWarningByPercent(summary.hollowPercent);
+
+  const parts = [
+    summary.ripenessText,
+    summary.sweetnessText,
+    summary.crispText,
+    summary.juiceText
+  ];
+
+  if(warning.text){
+    parts.push(warning.text);
+  }
+
+  parts.push(summary.qualityText);
+
+  const text = parts.filter(Boolean).join(", ");
+
+  if(warning.text){
+    playWarningBeep(warning.level);
+    setTimeout(() => speakText(text), warning.level === "high" ? 750 : 500);
+  }else{
+    speakText(text);
+  }
+}
+
+
+
+function speakText(text){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="th-TH";u.rate = 0.96;u.pitch = 1.0;u.volume=1;const v=speechSynthesis.getVoices().find(v=>v.lang&&v.lang.toLowerCase().includes("th"));if(v)u.voice=v;speechSynthesis.speak(u);}catch(e){console.log(e);}}
 function updateWatermelonColor(flesh){document.getElementById("watermelon").style.background=`radial-gradient(circle at center, ${flesh} 0 68%, #2e7d32 69% 100%)`;}
 function setSignalQuality(label,cls){const el=document.getElementById("signalBadge");el.innerText=`คุณภาพสัญญาณ: ${label}`;el.className=`sig sig-${cls}`;}
 function updateTapProgress(){document.getElementById("tapProgress").innerText=`${tapFeatures.length}/${NUM_TAPS}`;}
 function setStatus(msg){document.getElementById("status").innerText=`สถานะ: ${msg}`;}
 function saveHistory(level,brix,conf,score,buy,sig){const h=JSON.parse(localStorage.getItem("history")||"[]");h.unshift({time:new Date().toLocaleString(),level,brix,conf,score,buy,sig});localStorage.setItem("history",JSON.stringify(h.slice(0,8)));updateHistory();}
 function updateHistory(){const h=JSON.parse(localStorage.getItem("history")||"[]");document.getElementById("history").innerHTML=h.map(x=>`<li>${x.time}: ${x.level} | ${safe(x.brix,0).toFixed(1)} °Bx | Score ${x.score}/100 | ${x.buy}</li>`).join("");}
+
+let measurementHistory = JSON.parse(localStorage.getItem("melonMeasurementHistory") || "[]");
+
+function saveMeasurementDebug(data){
+  measurementHistory.push(data);
+  localStorage.setItem("melonMeasurementHistory", JSON.stringify(measurementHistory));
+}
+
+
+
+
+function buildMeasurementsCSV(){
+  if(!measurementHistory.length) return "";
+  const headers = Object.keys(measurementHistory[0]);
+  const rows = measurementHistory.map(r =>
+    headers.map(h => {
+      const v = r[h] ?? "";
+      return '"' + String(v).replace(/"/g,'""') + '"';
+    }).join(",")
+  );
+  return "\uFEFF" + headers.join(",") + "\n" + rows.join("\n");
+}
+
+function downloadMeasurementsCSV(showAlert=true){
+  const csv = buildMeasurementsCSV();
+  if(!csv){
+    if(showAlert) alert("ยังไม่มีข้อมูลการวัด");
+    return false;
+  }
+
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "MelodyMelonTap_v22_measurements.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return true;
+}
+
+function exportMeasurementsCSV(){
+  downloadMeasurementsCSV(true);
+}
+
+function clearMeasurementsCSV(){
+  if(confirm("ต้องการล้างข้อมูลการวัดที่บันทึกไว้ในเครื่องนี้หรือไม่?")){
+    measurementHistory = [];
+    localStorage.setItem("melonMeasurementHistory", "[]");
+    alert("ล้างข้อมูลแล้ว");
+  }
+}
+
 function resetAll(){
-  listening=false;if(rafId)cancelAnimationFrame(rafId);tapFeatures=[];captureState="idle";cooldownFrames=0;updateTapProgress();setStatus("พร้อมเริ่มวัด");document.getElementById("startBtn").disabled=false;
+  listening=false;if(rafId)cancelAnimationFrame(rafId);tapFeatures=[];captureState="idle";cooldownFrames=0;updateTapProgress();setStatus("พร้อมเริ่มวัด");
+function shareResult(){
+  const text =
+    document.getElementById("result").innerText +
+    "\nMelon Score: " + document.getElementById("melonScore").innerText +
+    "\nคำแนะนำ: " + document.getElementById("buyBadge").innerText +
+    "\n" + document.getElementById("signalBadge").innerText;
+
+  // ดาวน์โหลด CSV ข้อมูลดิบทั้งหมดพร้อมกัน
+  const exported = downloadMeasurementsCSV(false);
+
+  if(navigator.share){
+    navigator.share({
+      title:"ผลวัดแตงโม MelodyMelonTap",
+      text: text + (exported ? "\n\nไฟล์ CSV ข้อมูลดิบถูกดาวน์โหลดไว้แล้ว" : "")
+    }).catch(()=>{});
+  }else{
+    alert(text + (exported ? "\n\nดาวน์โหลด CSV แล้ว" : "\n\nยังไม่มีข้อมูล CSV"));
+  }
+}
+
+document.getElementById("startBtn").disabled=false;
   document.getElementById("result").innerHTML="ยังไม่มีผลลัพธ์";["ripenessVal","brixVal","firmVal","juiceVal","hollowVal","confVal"].forEach(id=>document.getElementById(id).innerText="-");["amiVal","sweetnessText","firmText","juiceText","hollowText","groupVal"].forEach(id=>document.getElementById(id).innerText="-");document.getElementById("melonScore").innerText="-";document.getElementById("buyBadge").className="buyBadge";document.getElementById("buyBadge").innerText="-";document.getElementById("scoreExplain").innerText="ยังไม่มีการประเมิน";["brixBar","firmBar","juiceBar","hollowBar","confBar"].forEach(id=>setBar(id,0));document.getElementById("featureList").innerHTML="";updateWatermelonColor("#ff5252");setSignalQuality("รอวัด","mid");
 }
-function shareResult(){const text=document.getElementById("result").innerText+"\nMelon Score: "+document.getElementById("melonScore").innerText+"\nคำแนะนำ: "+document.getElementById("buyBadge").innerText;if(navigator.share)navigator.share({title:"ผลวัดแตงโม",text});else alert(text);}
+
+
+function shareResult(){
+  const text =
+    document.getElementById("result").innerText +
+    "\nMelon Score: " + document.getElementById("melonScore").innerText +
+    "\nคำแนะนำ: " + document.getElementById("buyBadge").innerText +
+    "\n" + document.getElementById("signalBadge").innerText;
+
+  // ดาวน์โหลด CSV ข้อมูลดิบทั้งหมดพร้อมกัน
+  const exported = downloadMeasurementsCSV(false);
+
+  if(navigator.share){
+    navigator.share({
+      title:"ผลวัดแตงโม MelodyMelonTap",
+      text: text + (exported ? "\n\nไฟล์ CSV ข้อมูลดิบถูกดาวน์โหลดไว้แล้ว" : "")
+    }).catch(()=>{});
+  }else{
+    alert(text + (exported ? "\n\nดาวน์โหลด CSV แล้ว" : "\n\nยังไม่มีข้อมูล CSV"));
+  }
+}
+
 document.getElementById("startBtn").addEventListener("click",startSession);
 document.getElementById("resetBtn").addEventListener("click",resetAll);
 document.getElementById("shareBtn").addEventListener("click",shareResult);
