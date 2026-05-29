@@ -1259,7 +1259,7 @@ function speakSummaryAI(summary){
     parts = [summary.ripenessText];
   }
 
-  if(summary.clarityText){
+  if(summary.clarityText && summary.clarityText.includes("ควรเคาะซ้ำ")){
     parts.push(summary.clarityText);
   }
 
